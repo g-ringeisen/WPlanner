@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="UnitTests/UnitTests.csproj" Id="e2f337cd-fdd9-4eb4-b286-bf3db555582a" />
+  <Project Path="WurthPlanner/WurthPlanner.csproj" />
+  <Project Path="WurthPlannerWebview/WurthPlannerWebview.csproj" />
+</Solution>

@@ -1,0 +1,28 @@
+@namespace WurthPlannerWebview.Components.Shared
+@using WurthPlanner.Models
+
+@switch (WorkItem.Type)
+{
+    /*
+    case ProjectMetadata project:
+        <ProjectMetadataForm Metadata="project" MetadataChanged="MetadataChanged" />
+        break;
+    case MeetingMetadata meeting:
+        <MeetingMetadataForm Metadata="meeting" MetadataChanged="MetadataChanged" />
+        break;
+    case TaskMetadata task:
+        <TaskMetadataForm Metadata="task" MetadataChanged="MetadataChanged" />
+        break;
+    case SprintMetadata sprint:
+        <SprintMetadataForm Metadata="sprint" MetadataChanged="MetadataChanged" />
+        break;
+    case PersonalMetadata personal:
+        <PersonalMetadataForm Metadata="personal" MetadataChanged="MetadataChanged" />
+        break;
+     */
+}
+
+@code {
+    [Parameter, EditorRequired] public WorkItem WorkItem { get; set; } = null!;
+    [Parameter] public EventCallback MetadataChanged { get; set; }
+}

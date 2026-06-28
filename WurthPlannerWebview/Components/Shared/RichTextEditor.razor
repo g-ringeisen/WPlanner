@@ -1,0 +1,97 @@
+@namespace WurthPlannerWebview.Components.Shared
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div class="btn-toolbar gap-1 border-bottom pb-2 mb-2" role="toolbar">
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("bold"))" aria-label="Gras">
+            <i class="bi bi-type-bold"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("italic"))" aria-label="Italique">
+            <i class="bi bi-type-italic"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("underline"))" aria-label="Souligné">
+            <i class="bi bi-type-underline"></i>
+        </button>
+    </div>
+    <div class="vr mx-1"></div>
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("formatBlock", "H2"))" aria-label="Titre">
+            <i class="bi bi-type-h1"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("insertUnorderedList"))" aria-label="Liste à puces">
+            <i class="bi bi-list-ul"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("insertOrderedList"))" aria-label="Liste numérotée">
+            <i class="bi bi-list-ol"></i>
+        </button>
+    </div>
+    <div class="vr mx-1"></div>
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="InsertLink" aria-label="Lien">
+            <i class="bi bi-link-45deg"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary border-0" @onclick="@(() => ExecCommand("formatBlock", "BLOCKQUOTE"))" aria-label="Citation">
+            <i class="bi bi-blockquote-left"></i>
+        </button>
+    </div>
+</div>
+
+<div @ref="_editorRef"
+     id="@_editorId"
+     class="form-control planner-rte-content"
+     contenteditable="true"
+     data-placeholder="@Placeholder"
+     @oninput="OnContentChanged">
+</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ContentChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Rédigez votre note ici...";
+
+    private ElementReference _editorRef;
+    private readonly string _editorId = $"rte-{Guid.NewGuid():N}";
+    private bool _initialized;
+    private string _lastSetContent = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("plannerRte.init", _editorId, Content);
+            _lastSetContent = Content;
+            _initialized = true;
+        }
+        else if (_initialized && Content != _lastSetContent)
+        {
+            // Le contenu a été remplacé depuis l'extérieur (ex: changement
+            // de note sélectionnée) plutôt que tapé localement: on
+            // resynchronise le DOM avec la nouvelle valeur.
+            await JS.InvokeVoidAsync("plannerRte.setContent", _editorId, Content);
+            _lastSetContent = Content;
+        }
+    }
+
+    private async Task OnContentChanged(ChangeEventArgs args)
+    {
+        var html = await JS.InvokeAsync<string>("plannerRte.getContent", _editorId);
+        _lastSetContent = html;
+        await ContentChanged.InvokeAsync(html);
+    }
+
+    private async Task ExecCommand(string command, string? value = null)
+    {
+        await JS.InvokeVoidAsync("plannerRte.exec", _editorId, command, value);
+        await OnContentChanged(new ChangeEventArgs());
+    }
+
+    private async Task InsertLink()
+    {
+        var url = await JS.InvokeAsync<string?>("plannerRte.promptForLink");
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            await ExecCommand("createLink", url);
+        }
+    }
+}

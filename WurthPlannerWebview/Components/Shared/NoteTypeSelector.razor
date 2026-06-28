@@ -1,0 +1,44 @@
+@namespace WurthPlannerWebview.Components.Shared
+@using WurthPlannerWebview.Utils
+@using WurthPlanner.Models
+
+<div class="dropdown flex-shrink-0">
+    <button type="button"
+            class="btn btn-sm btn-light dropdown-toggle d-flex align-items-center gap-2"
+            @onclick="ToggleMenu">
+        <i class="bi @WorkItemTypeInfo.Icon(SelectedType)"></i>
+        <span>@WorkItemTypeInfo.Label(SelectedType)</span>
+    </button>
+
+    <ul class="dropdown-menu @(_isOpen ? "show" : "")">
+        @foreach (var type in WorkItemTypeInfo.All)
+        {
+            <li>
+                <button type="button"
+                        class="dropdown-item d-flex align-items-center gap-2 @(type == SelectedType ? "active" : "")"
+                        @onclick="@(() => SelectType(type))">
+                    <i class="bi @WorkItemTypeInfo.Icon(type)"></i>
+                    <span>@WorkItemTypeInfo.Label(type)</span>
+                </button>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter] public WorkItemType SelectedType { get; set; }
+    [Parameter] public EventCallback<WorkItemType> SelectedTypeChanged { get; set; }
+
+    private bool _isOpen;
+
+    private void ToggleMenu() => _isOpen = !_isOpen;
+
+    private async Task SelectType(WorkItemType type)
+    {
+        _isOpen = false;
+        if (type != SelectedType)
+        {
+            await SelectedTypeChanged.InvokeAsync(type);
+        }
+    }
+}

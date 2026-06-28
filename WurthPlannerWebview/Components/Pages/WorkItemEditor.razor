@@ -1,0 +1,58 @@
+@page "/"
+@using WurthPlannerWebview.Utils
+@using WurthPlannerWebview.Components.Shared
+@rendermode InteractiveServer
+
+<PageTitle>Planner</PageTitle>
+
+<div class="card planner-shell shadow-sm">
+    <div class="card-header d-flex align-items-center gap-2 bg-body">
+        <i class="bi bi-journal-text text-secondary"></i>
+        <span class="fw-medium">planner</span>
+        <div class="flex-grow-1"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2" @onclick="ToggleTheme">
+            <i class="bi @(_isDarkMode ? "bi-sun" : "bi-moon")"></i>
+            @(_isDarkMode ? "Mode clair" : "Mode sombre")
+        </button>
+        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-2" @onclick="CreateNewWorkItem">
+            <i class="bi bi-plus-lg"></i>
+            Nouvelle note
+        </button>
+    </div>
+
+    <div class="row g-0 planner-body">
+        <main class="col-12 col-lg-8 border-end p-4 d-flex flex-column gap-3">
+            @if (_currentWorkItem is not null)
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <NoteTypeSelector SelectedType="_currentWorkItem.Type"
+                                      SelectedTypeChanged="OnWorkItemTypeChanged" />
+                    <input type="text"
+                           class="form-control form-control-lg border-0 shadow-none fw-medium flex-grow-1"
+                           placeholder="Titre de la note"
+                           value="@_currentWorkItem.Title"
+                           @onchange="OnTitleChanged" />
+                </div>
+
+                <RichTextEditor Content="@_currentWorkItem.Description?.Text"
+                                 ContentChanged="OnContentChanged" />
+
+                <div class="mt-auto pt-3 border-top">
+                    <p class="text-secondary small mb-2">Détails @WorkItemTypeInfo.Label(_currentWorkItem.Type).ToLower()</p>
+                    <MetadataFormSwitch WorkItem="_currentWorkItem"
+                                         MetadataChanged="OnMetadataChanged" />
+                </div>
+            }
+            else
+            {
+                <p class="text-secondary">Sélectionnez une note ou créez-en une nouvelle.</p>
+            }
+        </main>
+
+        <aside class="col-12 col-lg-4 bg-body-secondary d-flex flex-column planner-sidebar">
+            <NoteListPanel WorkItems="_notes"
+                           SelectedWorkItemId="_currentWorkItem?.Id"
+                           OnWorkItemSelected="OnWorkItemSelected" />
+        </aside>
+    </div>
+</div>
