@@ -2,6 +2,84 @@ body {
     background: var(--bs-tertiary-bg);
 }
 
+/* Mise en page générale : sidebar de navigation + zone de contenu */
+.planner-app {
+    min-height: 100vh;
+}
+
+.planner-nav-col {
+    width: 220px;
+}
+
+.planner-content {
+    min-width: 0;
+}
+
+.planner-nav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 220px;
+}
+
+.planner-nav-brand {
+    height: 56px;
+}
+
+.planner-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.planner-nav-link i {
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+
+.planner-nav-link:hover {
+    background: var(--bs-tertiary-bg);
+}
+
+.planner-nav-link.active {
+    background: var(--bs-tertiary-bg);
+    font-weight: 500;
+}
+
+.planner-nav-link.active i {
+    color: var(--bs-body-color);
+}
+
+@media (max-width: 767.98px) {
+    .planner-nav-col {
+        width: 64px;
+    }
+
+    .planner-nav {
+        width: 64px;
+    }
+
+    .planner-nav-brand span,
+    .planner-nav-link span {
+        display: none;
+    }
+
+    .planner-nav-brand {
+        justify-content: center;
+    }
+
+    .planner-nav-link {
+        justify-content: center;
+    }
+}
+
 .planner-shell {
     max-width: 1280px;
     margin: 24px auto;

@@ -1,5 +1,11 @@
 @inherits LayoutComponentBase
+@using WurthPlannerWebview.Components.Layout
 
-<div class="page">
-    @Body
+<div class="planner-app d-flex">
+    <div class="planner-nav-col flex-shrink-0">
+        <NavMenu />
+    </div>
+    <div class="planner-content flex-grow-1">
+        @Body
+    </div>
 </div>
