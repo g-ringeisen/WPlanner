@@ -47,6 +47,48 @@ namespace WurthPlanner.Services
             return await Task.FromResult(_workItemRepository.AsQueryable().ToList());
         }
 
+        /// <summary>
+        /// Récupère les Assignments dont la période (StartDate/EndDate) intersecte
+        /// la plage [from, to]. Un Assignment sans dates est ignoré du planning.
+        /// </summary>
+        public async Task<List<WorkItem>> GetAssignmentsAsync(DateTime from, DateTime to)
+        {
+            var result = _workItemRepository.AsQueryable()
+                .Where(wi => wi.Type == WorkItemType.Assignment)
+                .Where(wi => wi.StartDate.HasValue && wi.EndDate.HasValue)
+                .Where(wi => wi.StartDate.Value < to && wi.EndDate.Value > from)
+                .ToList();
+
+            return await Task.FromResult(result);
+        }
+
+        /// <summary>
+        /// Liste des Task / Event (réunions) actifs, triés par date d'échéance
+        /// (DueDate pour les Task) puis par date de début (StartDate pour les Event)
+        /// croissante. Utilisé pour le panneau latéral de la page Planning.
+        /// </summary>
+        public async Task<List<WorkItem>> GetActiveTasksAndMeetingsAsync()
+        {
+            var activeStatuses = new[] { WorkItemStatus.Open, WorkItemStatus.InProgress };
+
+            var result = _workItemRepository.AsQueryable()
+                .Where(wi => wi.Type == WorkItemType.Task || wi.Type == WorkItemType.Event)
+                .Where(wi => activeStatuses.Contains(wi.Status))
+                .ToList()
+                .OrderBy(wi => GetSortDate(wi) ?? DateTime.MaxValue)
+                .ToList();
+
+            return await Task.FromResult(result);
+        }
+
+        private static DateTime? GetSortDate(WorkItem workItem)
+        {
+            if (workItem.Type == WorkItemType.Task)
+                return workItem.DueDate?.ToDateTime(TimeOnly.MinValue);
+
+            return workItem.StartDate;
+        }
+
         private WorkItem Validate(WorkItem workItem)
         {
             return workItem.Type.ValidateWorkItem(workItem);

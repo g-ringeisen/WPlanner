@@ -1,8 +1,55 @@
 @page "/planning"
+@using WurthPlanner.Models
+@using WurthPlannerWebview.Components.Shared
+@rendermode InteractiveServer
 
 <PageTitle>Planning</PageTitle>
 
-<div class="p-4">
-    <h1 class="h4 mb-1">Planning</h1>
-    <p class="text-secondary">Cette page sera bientôt disponible.</p>
+<div class="card planner-shell shadow-sm">
+    <div class="card-header d-flex align-items-center gap-2 bg-body flex-wrap">
+        <i class="bi bi-calendar3 text-secondary"></i>
+        <span class="fw-medium">Planning</span>
+        <span class="text-secondary small">@FormatRangeLabel()</span>
+
+        <div class="flex-grow-1"></div>
+
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => ShiftRange(-_weekCount))" aria-label="Période précédente">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="GoToToday">
+                Aujourd'hui
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => ShiftRange(_weekCount))" aria-label="Période suivante">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <select class="form-select form-select-sm" style="width: auto;" value="@_weekCount" @onchange="OnWeekCountChanged">
+            @foreach (var weeks in ZoomOptions)
+            {
+                <option value="@weeks">@weeks semaines</option>
+            }
+        </select>
+    </div>
+
+    <div class="row g-0 planner-body">
+        <main class="col-12 col-lg-9 border-end p-0">
+            @if (_isLoading)
+            {
+                <p class="text-secondary p-4">Chargement…</p>
+            }
+            else
+            {
+                <PlanningGantt Assignments="_assignments"
+                               RangeStart="_rangeStart"
+                               WeekCount="_weekCount"
+                               AssignmentChanged="OnAssignmentChanged" />
+            }
+        </main>
+
+        <aside class="col-12 col-lg-3 bg-body-secondary d-flex flex-column planner-sidebar">
+            <ActiveItemListPanel Items="_sidebarItems" />
+        </aside>
+    </div>
 </div>

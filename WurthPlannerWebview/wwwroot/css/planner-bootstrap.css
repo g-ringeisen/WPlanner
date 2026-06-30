@@ -145,3 +145,229 @@ body {
     display: block;
     position: absolute;
 }
+/* ---------------------------------------------------------------- */
+/* Page Planning – Gantt par ressource                              */
+/* ---------------------------------------------------------------- */
+
+/* Conteneur principal du Gantt */
+.planner-gantt {
+    width: 100%;
+    height: 100%;
+    min-height: 480px;
+}
+
+/* Zone scrollable horizontalement et verticalement */
+.planner-gantt-scroll {
+    overflow: auto;
+    height: 100%;
+    max-height: calc(100vh - 120px);
+    position: relative;
+}
+
+/* ---- En-têtes (sticky top) ------------------------------------ */
+
+.planner-gantt-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bs-body-bg);
+    display: flex;
+    flex-direction: column;
+    border-bottom: 2px solid var(--bs-border-color);
+    min-width: max-content;
+}
+
+.planner-gantt-header-row {
+    display: flex;
+    align-items: stretch;
+}
+
+/* Coin supérieur gauche (vide, recouvre l'intersection header / lane-col) */
+.planner-gantt-corner {
+    flex-shrink: 0;
+    width: var(--lane-header-width);
+    border-right: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+
+.planner-gantt-month-cell {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    text-align: center;
+    padding: 5px 0;
+    border-right: 1px solid var(--bs-border-color-translucent);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.planner-gantt-day-cell {
+    flex-shrink: 0;
+    width: var(--day-width);
+    font-size: 0.68rem;
+    color: var(--bs-secondary-color);
+    text-align: center;
+    padding: 3px 0;
+    border-right: 1px solid var(--bs-border-color-translucent);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.planner-gantt-day-dow {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* ---- Corps : swimlanes ---------------------------------------- */
+
+.planner-gantt-body {
+    display: flex;
+    min-width: max-content;
+}
+
+/* Colonne gauche avec les noms de ressources (sticky left) */
+.planner-gantt-lane-col {
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    width: var(--lane-header-width);
+    background: var(--bs-body-bg);
+    border-right: 1px solid var(--bs-border-color);
+}
+
+.planner-gantt-lane-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--bs-border-color);
+    box-sizing: border-box;
+}
+
+/* Zone de dessin : fond de colonnes + barres */
+.planner-gantt-canvas {
+    position: relative;
+    flex-grow: 1;
+}
+
+/* Colonnes jour en fond (fond coloré pour les non-ouvrés) */
+.planner-gantt-day-cols {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+}
+
+.planner-gantt-day-col {
+    flex-shrink: 0;
+    width: var(--day-width);
+    border-right: 1px solid var(--bs-border-color-translucent);
+    height: 100%;
+}
+
+.planner-gantt-day-off {
+    background-color: var(--bs-tertiary-bg);
+}
+
+/* Trait de séparation horizontal entre swimlanes */
+.planner-gantt-lane-sep {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid var(--bs-border-color);
+    pointer-events: none;
+}
+
+/* ---- Barres des Assignments ----------------------------------- */
+
+.planner-bar {
+    position: absolute;
+    height: calc(var(--row-height) - 6px);
+    display: flex;
+    align-items: center;
+    padding: 0 28px 0 8px; /* padding-right pour laisser la place au handle */
+    border-radius: 4px;
+    background: var(--bs-primary-bg-subtle);
+    border: 1px solid var(--bs-primary-border-subtle);
+    color: var(--bs-emphasis-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    box-sizing: border-box;
+    transition: box-shadow 0.1s ease;
+}
+
+.planner-bar:hover {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    z-index: 2;
+}
+
+.planner-bar-dragging {
+    cursor: grabbing;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+    z-index: 20;
+    opacity: 0.9;
+}
+
+.planner-bar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    pointer-events: none;
+}
+
+/* Poignée de redimensionnement (côté droit de la barre) */
+.planner-bar-resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+    touch-action: none;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.planner-bar-resize-handle::after {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 12px;
+    background: var(--bs-primary-border-subtle);
+    border-radius: 1px;
+}
+
+.planner-bar-resize-handle:hover::after {
+    background: var(--bs-primary);
+}
+
+/* ---- Panneau latéral ------------------------------------------ */
+
+.planner-status-badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+.planner-status-open {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+}
+
+.planner-status-inprogress {
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+}

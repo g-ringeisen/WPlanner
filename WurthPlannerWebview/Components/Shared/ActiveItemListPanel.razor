@@ -1,0 +1,55 @@
+@namespace WurthPlannerWebview.Components.Shared
+@using WurthPlanner.Models
+@using WurthPlannerWebview.Utils
+
+<div class="d-flex flex-column h-100">
+    <div class="p-3 pb-2 border-bottom">
+        <span class="fw-medium small text-secondary text-uppercase">À traiter</span>
+    </div>
+
+    <div class="flex-grow-1 overflow-auto px-2 py-2 d-flex flex-column gap-2">
+        @foreach (var item in Items)
+        {
+            <div class="card planner-note-card" @onclick="@(() => OnItemSelected.InvokeAsync(item.Id))">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi @WorkItemTypeInfo.Icon(item.Type) text-secondary"></i>
+                        <span class="fw-medium small flex-grow-1">@item.Title</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge planner-status-badge planner-status-@item.Status.ToString().ToLower()">@StatusLabel(item.Status)</span>
+                        @if (RelevantDate(item) is { } date)
+                        {
+                            <span class="text-secondary small">@date.ToString("dd MMM")</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!Items.Any())
+        {
+            <p class="text-secondary small text-center p-3">Rien à traiter pour le moment.</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<WorkItem> Items { get; set; } = new();
+    [Parameter] public EventCallback<Guid> OnItemSelected { get; set; }
+
+    private static DateOnly? RelevantDate(WorkItem item)
+    {
+        if (item.Type == WorkItemType.Task)
+            return item.DueDate;
+
+        return item.StartDate.HasValue ? DateOnly.FromDateTime(item.StartDate.Value) : null;
+    }
+
+    private static string StatusLabel(WorkItemStatus status) => status switch
+    {
+        WorkItemStatus.Open => "À faire",
+        WorkItemStatus.InProgress => "En cours",
+        _ => status.ToString()
+    };
+}

@@ -1,0 +1,114 @@
+@namespace WurthPlannerWebview.Components.Shared
+@using WurthPlanner.Models
+@using WurthPlannerWebview.Utils
+
+<div class="planner-gantt">
+    <div class="planner-gantt-scroll">
+
+        @* ===== HEADER (sticky top) ===== *@
+        <div class="planner-gantt-header" style="--day-width: @(DayWidthPx)px; --lane-header-width: @(LaneHeaderWidthPx)px;">
+            @* Ligne 1 : mois *@
+            <div class="planner-gantt-header-row">
+                <div class="planner-gantt-corner"></div>
+                @foreach (var (label, dayCount) in MonthHeaders())
+                {
+                    <div class="planner-gantt-month-cell" style="width: calc(@dayCount * var(--day-width));">@label</div>
+                }
+            </div>
+            @* Ligne 2 : numéros de jour *@
+            <div class="planner-gantt-header-row">
+                <div class="planner-gantt-corner"></div>
+                @foreach (var day in AllDays())
+                {
+                    <div class="planner-gantt-day-cell @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")">
+                        @day.Day
+                    </div>
+                }
+            </div>
+            @* Ligne 3 : abréviation jour *@
+            <div class="planner-gantt-header-row">
+                <div class="planner-gantt-corner"></div>
+                @foreach (var day in AllDays())
+                {
+                    <div class="planner-gantt-day-cell planner-gantt-day-dow @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")">
+                        @day.ToString("ddd", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")).TrimEnd('.')
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ===== CORPS : swimlanes ===== *@
+        <div class="planner-gantt-body" style="--day-width: @(DayWidthPx)px; --row-height: @(RowHeightPx)px; --lane-header-width: @(LaneHeaderWidthPx)px;">
+
+            @* Colonne noms de ressources (sticky left) *@
+            <div class="planner-gantt-lane-col">
+                @foreach (var lane in _laneNames)
+                {
+                    var laneHeight = _laneRowCounts[lane] * RowHeightPx;
+                    <div class="planner-gantt-lane-header" style="height: @(laneHeight)px;">
+                        <span>@lane</span>
+                    </div>
+                }
+            </div>
+
+            @* Zone de dessin : fond + barres *@
+            <div class="planner-gantt-canvas">
+
+                @* Fond : colonnes jour (grisé week-end/fériés) *@
+                @{ var totalBodyHeightPx = _laneNames.Sum(l => _laneRowCounts[l]) * RowHeightPx; }
+                <div class="planner-gantt-day-cols" style="height: @(totalBodyHeightPx)px;">
+                    @foreach (var day in AllDays())
+                    {
+                        <div class="planner-gantt-day-col @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")"></div>
+                    }
+                </div>
+
+                @* Séparateurs de swimlanes *@
+                @{ int sepTopPx = 0; }
+                @foreach (var lane in _laneNames)
+                {
+                    var laneHeight = _laneRowCounts[lane] * RowHeightPx;
+                    <div class="planner-gantt-lane-sep" style="top: @(sepTopPx)px; height: @(laneHeight)px;"></div>
+                    sepTopPx += laneHeight;
+                }
+
+                @* Barres des Assignments *@
+                @{ int laneTopPx = 0; }
+                @foreach (var lane in _laneNames)
+                {
+                    var bars     = _lanesBars[lane];
+                    var rowCount = _laneRowCounts[lane];
+
+                    foreach (var bar in bars)
+                    {
+                        if (bar.StartDayOffset + bar.DurationDays <= 0 || bar.StartDayOffset >= TotalDays)
+                            continue;
+
+                        var clampedStart    = Math.Max(bar.StartDayOffset, 0);
+                        var clampedEnd      = Math.Min(bar.StartDayOffset + bar.DurationDays, TotalDays);
+                        var clampedDuration = clampedEnd - clampedStart;
+                        var barTopPx        = laneTopPx + bar.Row * RowHeightPx + 3;
+                        var barLeftPx       = clampedStart * DayWidthPx;
+                        var barWidthPx      = clampedDuration * DayWidthPx - 4;
+
+                        <div class="planner-bar"
+                             data-workitem-id="@bar.WorkItem.Id"
+                             data-base-width="@barWidthPx"
+                             style="top: @(barTopPx)px; left: @(barLeftPx)px; width: @(barWidthPx)px;"
+                             title="@bar.WorkItem.Title"
+                             @onpointerdown="@(e => OnBarPointerDown(e, bar.WorkItem.Id, lane))">
+                            <span class="planner-bar-label">@bar.WorkItem.Title</span>
+                            <div class="planner-bar-resize-handle"
+                                 @onpointerdown="@(e => OnResizePointerDown(e, bar.WorkItem.Id, lane))"
+                                 @onpointerdown:stopPropagation="true"></div>
+                        </div>
+                    }
+
+                    laneTopPx += rowCount * RowHeightPx;
+                }
+
+            </div>
+        </div>
+
+    </div>
+</div>
