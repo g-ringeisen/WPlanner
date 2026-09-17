@@ -42,11 +42,11 @@
 
             @* Colonne noms de ressources (sticky left) *@
             <div class="planner-gantt-lane-col">
-                @foreach (var lane in _laneNames)
+                @foreach (var swimlane in _swimlanes)
                 {
-                    var laneHeight = _laneRowCounts[lane] * RowHeightPx;
+                    var laneHeight = swimlane.RowCount * RowHeightPx;
                     <div class="planner-gantt-lane-header" style="height: @(laneHeight)px;">
-                        <span>@lane</span>
+                        <span>@swimlane.Name</span>
                     </div>
                 }
             </div>
@@ -55,7 +55,7 @@
             <div class="planner-gantt-canvas">
 
                 @* Fond : colonnes jour (grisé week-end/fériés) *@
-                @{ var totalBodyHeightPx = _laneNames.Sum(l => _laneRowCounts[l]) * RowHeightPx; }
+                @{ var totalBodyHeightPx = _totalRows * RowHeightPx; }
                 <div class="planner-gantt-day-cols" style="height: @(totalBodyHeightPx)px;">
                     @foreach (var day in AllDays())
                     {
@@ -65,20 +65,19 @@
 
                 @* Séparateurs de swimlanes *@
                 @{ int sepTopPx = 0; }
-                @foreach (var lane in _laneNames)
+                @foreach (var swimlane in _swimlanes)
                 {
-                    var laneHeight = _laneRowCounts[lane] * RowHeightPx;
+                    var laneHeight = swimlane.RowCount * RowHeightPx;
                     <div class="planner-gantt-lane-sep" style="top: @(sepTopPx)px; height: @(laneHeight)px;"></div>
                     sepTopPx += laneHeight;
                 }
 
                 @* Barres des Assignments *@
-                @{ int laneTopPx = 0; }
-                @foreach (var lane in _laneNames)
+                @{ int laneTopPx = 0, rowCount = 0; }
+                @foreach (var swimlane in _swimlanes)
                 {
-                    var bars     = _lanesBars[lane];
-                    var rowCount = _laneRowCounts[lane];
-
+                    var bars = swimlane.Bars;
+                    
                     foreach (var bar in bars)
                     {
                         if (bar.StartDayOffset + bar.DurationDays <= 0 || bar.StartDayOffset >= TotalDays)
@@ -90,21 +89,23 @@
                         var barTopPx        = laneTopPx + bar.Row * RowHeightPx + 3;
                         var barLeftPx       = clampedStart * DayWidthPx;
                         var barWidthPx      = clampedDuration * DayWidthPx - 4;
+                        var rowIndex        = rowCount + bar.Row;
 
                         <div class="planner-bar"
                              data-workitem-id="@bar.WorkItem.Id"
                              data-base-width="@barWidthPx"
                              style="top: @(barTopPx)px; left: @(barLeftPx)px; width: @(barWidthPx)px;"
                              title="@bar.WorkItem.Title"
-                             @onpointerdown="@(e => OnBarPointerDown(e, bar.WorkItem.Id, lane))">
+                             @onpointerdown="@(e => OnBarPointerDown(e, bar.WorkItem.Id, rowIndex))">
                             <span class="planner-bar-label">@bar.WorkItem.Title</span>
                             <div class="planner-bar-resize-handle"
-                                 @onpointerdown="@(e => OnResizePointerDown(e, bar.WorkItem.Id, lane))"
+                                 @onpointerdown="@(e => OnResizePointerDown(e, bar.WorkItem.Id, rowIndex))"
                                  @onpointerdown:stopPropagation="true"></div>
                         </div>
                     }
 
-                    laneTopPx += rowCount * RowHeightPx;
+                    rowCount += swimlane.RowCount;
+                    laneTopPx = rowCount * RowHeightPx;
                 }
 
             </div>

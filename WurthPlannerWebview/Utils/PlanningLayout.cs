@@ -80,6 +80,15 @@ public static class PlanningLayout
     }
 
     /// <summary>
+    /// Une swimlane nommée 
+    /// </summary>
+    public record Swimlane(string Name, List<PlacedBar> Bars, Action<WorkItem> AssignmentAction)
+    {
+        public int RowCount => (Bars.Count == 0 ? 0 : Bars.Max(b => b.Row) + 1) + 1;
+    }
+
+
+    /// <summary>
     /// Une barre positionnée dans une swimlane : référence le WorkItem d'origine,
     /// ses bornes en jours (offsets depuis le début de plage affichée) et le
     /// numéro de "rangée" (0-based) au sein de la swimlane après packing.
@@ -87,13 +96,12 @@ public static class PlanningLayout
     public record PlacedBar(WorkItem WorkItem, int StartDayOffset, int DurationDays, int Row);
 
     /// <summary>
-    /// Place les WorkItems d'une swimlane sur des rangées de sorte que deux
-    /// barres ne se chevauchant jamais ne partagent la même rangée. Algorithme
-    /// glouton classique : on trie par date de début puis on assigne à la
-    /// première rangée libre (dont la dernière barre se termine avant le
-    /// début de la barre courante).
+    /// Construit une swminlane en placant les WorkItems sur des rangées de sorte 
+    /// que deux barres ne se chevauchant jamais ne partagent la même rangée. 
+    /// Algorithme glouton classique : on trie par date de début puis on assigne à la
+    /// première rangée libre (dont la dernière barre se termine avant le début de la barre courante).
     /// </summary>
-    public static List<PlacedBar> PackBars(IEnumerable<WorkItem> items, DateOnly rangeStart)
+    public static Swimlane BuildSwimlane(string name, IEnumerable<WorkItem> items, DateOnly rangeStart, Action<WorkItem> assignmentAction)
     {
         var ordered = items
             .Where(i => i.StartDate.HasValue && i.EndDate.HasValue)
@@ -126,6 +134,6 @@ public static class PlanningLayout
             placed.Add(new PlacedBar(item, startOffset, duration, row));
         }
 
-        return placed;
+        return new(name, placed, assignmentAction);
     }
 }

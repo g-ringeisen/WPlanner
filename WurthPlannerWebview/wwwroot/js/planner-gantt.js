@@ -25,23 +25,23 @@ window.plannerGantt = {
 
     /// Démarre un déplacement (move) de barre. workItemId est la clé utilisée
     /// pour notifier .NET à la fin du geste.
-    startMove: function (clientX, clientY, workItemId, laneIndex) {
-        this._beginDrag(clientX, clientY, workItemId, 'move', laneIndex);
+    startMove: function (clientX, clientY, workItemId, rowIndex) {
+        this._beginDrag(clientX, clientY, workItemId, 'move', rowIndex);
     },
 
     /// Démarre un redimensionnement (poignée de fin uniquement).
-    startResize: function (clientX, clientY, workItemId, laneIndex) {
-        this._beginDrag(clientX, clientY, workItemId, 'resize', laneIndex);
+    startResize: function (clientX, clientY, workItemId, rowIndex) {
+        this._beginDrag(clientX, clientY, workItemId, 'resize', rowIndex);
     },
 
-    _beginDrag: function (clientX, clientY, workItemId, mode, laneIndex) {
+    _beginDrag: function (clientX, clientY, workItemId, mode, rowIndex) {
         this._state = {
             workItemId: workItemId,
             mode: mode,
             startX: clientX,
             startY: clientY,
-            startLaneIndex: laneIndex,
-            currentLaneIndex: laneIndex,
+            startRowIndex: rowIndex,
+            currentRowIndex: rowIndex,
             dayDelta: 0,
             durationDayDelta: 0,
             moved: false
@@ -62,11 +62,11 @@ window.plannerGantt = {
         }
 
         const dayDelta = Math.round(dx / this._dayWidth);
+        const laneDelta = Math.round(dy / this._rowHeight);
 
         if (this._state.mode === 'move') {
             this._state.dayDelta = dayDelta;
-            const laneDelta = Math.round(dy / this._rowHeight);
-            this._state.currentLaneIndex = this._state.startLaneIndex + laneDelta;
+            this._state.currentRowIndex = this._state.startRowIndex + laneDelta;
             this._applyMovePreview();
         } else {
             // resize: on ne modifie que la durée (largeur), jamais la ligne.
@@ -78,7 +78,7 @@ window.plannerGantt = {
     _applyMovePreview: function () {
         const el = document.querySelector(`[data-workitem-id="${this._state.workItemId}"]`);
         if (!el) return;
-        el.style.transform = `translate(${this._state.dayDelta * this._dayWidth}px, ${(this._state.currentLaneIndex - this._state.startLaneIndex) * this._rowHeight}px)`;
+        el.style.transform = `translate(${this._state.dayDelta * this._dayWidth}px, ${(this._state.currentRowIndex - this._state.startRowIndex) * this._rowHeight}px)`;
     },
 
     _applyResizePreview: function () {
@@ -97,15 +97,15 @@ window.plannerGantt = {
         if (el) {
             el.classList.remove('planner-bar-dragging');
             el.style.transform = '';
-            el.style.width = '';
+            //el.style.width = '';
         }
         this._state = null;
 
         if (!state.moved) return; // simple clic, pas un drag
 
         if (state.mode === 'move') {
-            if (state.dayDelta !== 0 || state.currentLaneIndex !== state.startLaneIndex) {
-                this._dotNetRef.invokeMethodAsync('OnBarMoved', state.workItemId, state.dayDelta, state.currentLaneIndex);
+            if (state.dayDelta !== 0 || state.currentRowIndex !== state.startRowIndex) {
+                this._dotNetRef.invokeMethodAsync('OnBarMoved', state.workItemId, state.dayDelta, state.currentRowIndex);
             }
         } else {
             if (state.durationDayDelta !== 0) {

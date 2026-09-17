@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WurthPlanner.Models;
-
-public class ExternalReference
+namespace WurthPlanner.Models
 {
-    public required string Type { get; set; }
-    public required string Id { get; set; }
-    public string? DisplayName { get; set; }
-    public string? Url { get; set; }
+    /// <summary>
+    /// Instantiable model for a reference managed by an external system.
+    /// </summary>
+    public class ExternalReference : IExternalReference
+    {
+        public string System { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string? Title { get; set; }
+        public string? Url { get; set; }
+    }
 }

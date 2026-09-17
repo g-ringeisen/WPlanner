@@ -3,6 +3,7 @@ using Microsoft.JSInterop;
 using WurthPlanner.Models;
 using WurthPlanner.Services;
 using WurthPlannerWebview.Utils;
+using static WurthPlannerWebview.Utils.PlanningLayout;
 
 namespace WurthPlannerWebview.Components.Shared;
 
@@ -25,9 +26,8 @@ public partial class PlanningGantt : ComponentBase, IAsyncDisposable
     private DateOnly RangeEnd => RangeStart.AddDays(WeekCount * 7);
     private int TotalDays => WeekCount * 7;
 
-    private List<string> _laneNames = new();
-    private Dictionary<string, List<PlanningLayout.PlacedBar>> _lanesBars = new();
-    private Dictionary<string, int> _laneRowCounts = new();
+    private List<Swimlane> _swimlanes = new();
+    private int _totalRows => _swimlanes.Sum(l => l.RowCount);
 
     protected override void OnParametersSet()
     {
@@ -49,23 +49,28 @@ public partial class PlanningGantt : ComponentBase, IAsyncDisposable
 
     private void BuildLanes()
     {
-        _laneNames = Assignments
-            .Select(a => string.IsNullOrWhiteSpace(a.Assignee) ? "Non assigné" : a.Assignee!)
+        List<string?> assigneeNames = [
+            null, 
+            "Mathias",
+            "Thibaut",
+            "Laurent",
+            "Ludovic",
+            "Rabah"
+        ];
+        /*
+        List<string?> assigneeNames = Assignments
+            .Select(a => a.Assignee)
             .Distinct()
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        */
 
-        _lanesBars = new();
-        _laneRowCounts = new();
+        _swimlanes = new();
 
-        foreach (var lane in _laneNames)
+        foreach (var name in assigneeNames)
         {
-            var items = Assignments.Where(a =>
-                (string.IsNullOrWhiteSpace(a.Assignee) ? "Non assigné" : a.Assignee!) == lane);
-
-            var placed = PlanningLayout.PackBars(items, RangeStart);
-            _lanesBars[lane] = placed;
-            _laneRowCounts[lane] = placed.Count == 0 ? 1 : placed.Max(p => p.Row) + 1;
+            var items = Assignments.Where(a => a.Assignee == name);
+            _swimlanes.Add(BuildSwimlane(name ?? "Non assigné", items, RangeStart, (item) => item.Assignee = name));
         }
     }
 
@@ -75,16 +80,14 @@ public partial class PlanningGantt : ComponentBase, IAsyncDisposable
             yield return RangeStart.AddDays(i);
     }
 
-    private int LaneIndex(string lane) => _laneNames.IndexOf(lane);
-
-    private async Task OnBarPointerDown(Microsoft.AspNetCore.Components.Web.PointerEventArgs e, Guid workItemId, string lane)
+    private async Task OnBarPointerDown(Microsoft.AspNetCore.Components.Web.PointerEventArgs e, Guid workItemId, int rowIndex)
     {
-        await JS.InvokeVoidAsync("plannerGantt.startMove", e.ClientX, e.ClientY, workItemId.ToString(), LaneIndex(lane));
+        await JS.InvokeVoidAsync("plannerGantt.startMove", e.ClientX, e.ClientY, workItemId.ToString(), rowIndex);
     }
 
-    private async Task OnResizePointerDown(Microsoft.AspNetCore.Components.Web.PointerEventArgs e, Guid workItemId, string lane)
+    private async Task OnResizePointerDown(Microsoft.AspNetCore.Components.Web.PointerEventArgs e, Guid workItemId, int rowIndex)
     {
-        await JS.InvokeVoidAsync("plannerGantt.startResize", e.ClientX, e.ClientY, workItemId.ToString(), LaneIndex(lane));
+        await JS.InvokeVoidAsync("plannerGantt.startResize", e.ClientX, e.ClientY, workItemId.ToString(), rowIndex);
     }
 
     private IEnumerable<(string Label, int DayCount)> MonthHeaders()
@@ -103,8 +106,20 @@ public partial class PlanningGantt : ComponentBase, IAsyncDisposable
         }
     }
 
+    private Swimlane? GetLaneForRow(int rowIndex)
+    {
+        int currentRow = 0;
+        foreach (var lane in _swimlanes)
+        {
+            if (rowIndex < currentRow + lane.RowCount)
+                return lane;
+            currentRow += lane.RowCount;
+        }
+        return null;
+    }
+
     [JSInvokable]
-    public async Task OnBarMoved(string workItemIdStr, int dayDelta, int newLaneIndex)
+    public async Task OnBarMoved(string workItemIdStr, int dayDelta, int currentRow)
     {
         if (!Guid.TryParse(workItemIdStr, out var workItemId)) return;
 
@@ -112,12 +127,10 @@ public partial class PlanningGantt : ComponentBase, IAsyncDisposable
         if (item is null || item.StartDate is null || item.EndDate is null) return;
 
         item.StartDate = item.StartDate.Value.AddDays(dayDelta);
-        item.EndDate = item.EndDate.Value.AddDays(dayDelta);
-
-        if (newLaneIndex >= 0 && newLaneIndex < _laneNames.Count)
+        
+        if (currentRow >= 0 && currentRow < _totalRows)
         {
-            var newAssignee = _laneNames[newLaneIndex];
-            item.Assignee = newAssignee == "Non assigné" ? null : newAssignee;
+            GetLaneForRow(currentRow)?.AssignmentAction(item);
         }
 
         await AssignmentChanged.InvokeAsync(item);
