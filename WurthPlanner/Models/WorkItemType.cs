@@ -59,13 +59,6 @@ namespace WurthPlanner.Models
 
         private static WorkItem ValidateAssignment(WorkItem workItem)
         {
-            // Un Assignment est rattaché à une tâche/phase parente (Parent obligatoire)
-            // mais conserve son propre titre et sa propre description : il représente
-            // une portion de travail spécifique à une ressource, distincte du titre
-            // générique de l'élément parent.
-            if (workItem.Parent == null)
-                throw new ArgumentException("Assignment work item must have a parent.");
-
             return workItem;
         }
 
