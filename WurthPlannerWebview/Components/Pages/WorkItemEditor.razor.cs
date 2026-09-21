@@ -7,7 +7,7 @@ namespace WurthPlannerWebview.Components.Pages;
 
 public partial class WorkItemEditor : ComponentBase
 {
-    [Inject] private WorkItemService WorkItemService { get; set; } = null!;
+    [Inject] private IWorkItemService WorkItemService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private List<WorkItem> _notes = new();

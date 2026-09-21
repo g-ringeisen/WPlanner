@@ -7,7 +7,7 @@ namespace WurthPlannerWebview.Components.Pages;
 
 public partial class Planning : ComponentBase
 {
-    [Inject] private WorkItemService WorkItemService { get; set; } = null!;
+    [Inject] private IWorkItemService WorkItemService { get; set; } = null!;
 
     private static readonly int[] ZoomOptions = { 2, 4, 6, 8, 12 };
 
