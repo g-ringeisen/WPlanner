@@ -1,80 +1,19 @@
 @namespace WurthPlannerWebview.Components.Shared
 @using WurthPlanner.Models
-@using WurthPlanner.Services
-@using WurthPlannerWebview.Utils
-@inject IWorkItemService WorkItemService
 
-<div class="d-flex flex-column h-100">
-    <div class="d-flex align-items-center gap-2 p-3 pb-2">
-        <select class="form-select form-select-sm" value="@_filterType" @onchange="OnFilterChanged">
-            <option value="">Tous les types</option>
-            @foreach (var type in WorkItemTypeInfo.All)
-            {
-                <option value="@type">@WorkItemTypeInfo.Label(type)</option>
-            }
-        </select>
-        <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" @onclick="ToggleSortDirection" aria-label="Trier">
-            <i class="bi @(_sortDescending ? "bi-sort-down" : "bi-sort-up")"></i>
+<div class="list-group">
+    @foreach (var item in FilteredItems)
+    {
+        <button type="button" class="list-group-item list-group-item-action @(item.Id == SelectedWorkItemId ? "active" : string.Empty)" @onclick="() => OnWorkItemSelected.InvokeAsync(item.Id)">
+            <strong>@item.Title</strong><br />
+            <small>@item.Excerpt</small>
         </button>
-    </div>
-
-    <div class="flex-grow-1 overflow-auto px-2 pb-2 d-flex flex-column gap-2">
-        @foreach (var note in FilteredAndSortedWorkItem)
-        {
-            <div class="card planner-note-card @(note.Id == SelectedWorkItemId ? "border-primary" : "")"
-                 @onclick="@(() => OnWorkItemSelected.InvokeAsync(note.Id))">
-                <div class="card-body py-2 px-3">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <i class="bi @WorkItemTypeInfo.Icon(note.Type) @(note.Id == SelectedWorkItemId ? "text-primary" : "text-secondary")"></i>
-                        <span class="fw-medium small">@note.Title</span>
-                    </div>
-                    <p class="text-secondary small mb-0 text-truncate">@note.Excerpt</p>
-                </div>
-            </div>
-        }
-
-        @if (!FilteredAndSortedWorkItem.Any())
-        {
-            <p class="text-secondary small text-center p-3">Aucune note ne correspond au filtre.</p>
-        }
-    </div>
+    }
 </div>
 
 @code {
-    [Parameter] public List<WorkItem> WorkItems { get; set; } = new();
+    [Parameter] public IReadOnlyCollection<IWorkItemBrief> WorkItems { get; set; } = Array.Empty<IWorkItemBrief>();
     [Parameter] public Guid? SelectedWorkItemId { get; set; }
     [Parameter] public EventCallback<Guid> OnWorkItemSelected { get; set; }
-
-    private List<WorkItem> _workItems = new();
-    private string _filterType = string.Empty;
-    private bool _sortDescending = true;
-
-    private IEnumerable<WorkItem> FilteredAndSortedWorkItem
-    {
-        get
-        {
-            var query = WorkItems.AsEnumerable();
-
-            if (!string.IsNullOrEmpty(_filterType) && Enum.TryParse<WorkItemType>(_filterType, out var type))
-            {
-                query = query.Where(n => n.Type == type);
-            }
-
-            query = _sortDescending
-                ? query.OrderByDescending(n => n.UpdatedAt)
-                : query.OrderBy(n => n.UpdatedAt);
-
-            return query;
-        }
-    }
-
-    private void OnFilterChanged(ChangeEventArgs args)
-    {
-        _filterType = args.Value?.ToString() ?? string.Empty;
-    }
-
-    private void ToggleSortDirection()
-    {
-        _sortDescending = !_sortDescending;
-    }
+    private IEnumerable<IWorkItemBrief> FilteredItems => WorkItems.OrderByDescending(item => item.Id);
 }

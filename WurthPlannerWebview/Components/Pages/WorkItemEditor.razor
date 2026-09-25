@@ -1,58 +1,88 @@
 @page "/notes"
-@using WurthPlannerWebview.Utils
-@using WurthPlannerWebview.Components.Shared
+@page "/work-items"
 @rendermode InteractiveServer
 
-<PageTitle>Notes</PageTitle>
+<PageTitle>Éléments de travail</PageTitle>
 
-<div class="card planner-shell shadow-sm">
-    <div class="card-header d-flex align-items-center gap-2 bg-body">
-        <i class="bi bi-journal-text text-secondary"></i>
-        <span class="fw-medium">planner</span>
-        <div class="flex-grow-1"></div>
-        <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2" @onclick="ToggleTheme">
-            <i class="bi @(_isDarkMode ? "bi-sun" : "bi-moon")"></i>
-            @(_isDarkMode ? "Mode clair" : "Mode sombre")
-        </button>
-        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-2" @onclick="CreateNewWorkItem">
-            <i class="bi bi-plus-lg"></i>
-            Nouvelle note
-        </button>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Éléments de travail</h1>
+            <p class="text-muted mb-0">Créer et modifier les tâches, phases, événements et notes.</p>
+        </div>
+        <button class="btn btn-danger" @onclick="CreateAsync" disabled="@_isSaving">Nouvel élément</button>
     </div>
 
-    <div class="row g-0 planner-body">
-        <main class="col-12 col-lg-8 border-end p-4 d-flex flex-column gap-3">
-            @if (_currentWorkItem is not null)
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger" role="alert">@_error</div>
+    }
+
+    <div class="row g-4">
+        <aside class="col-md-4">
+            <label class="form-label" for="work-item-search">Rechercher</label>
+            <div class="input-group mb-3">
+                <input id="work-item-search" class="form-control" @bind="_searchText" @bind:event="oninput" @onkeyup="SearchOnEnterAsync" />
+                <button class="btn btn-outline-secondary" @onclick="LoadAsync">Chercher</button>
+            </div>
+
+            @if (_isLoading)
             {
-                <div class="d-flex align-items-center gap-2">
-                    <NoteTypeSelector SelectedType="_currentWorkItem.Type"
-                                      SelectedTypeChanged="OnWorkItemTypeChanged" />
-                    <input type="text"
-                           class="form-control form-control-lg border-0 shadow-none fw-medium flex-grow-1"
-                           placeholder="Titre de la note"
-                           value="@_currentWorkItem.Title"
-                           @onchange="OnTitleChanged" />
-                </div>
-
-                <RichTextEditor Content="@_currentWorkItem.Description?.Text"
-                                 ContentChanged="OnContentChanged" />
-
-                <div class="mt-auto pt-3 border-top">
-                    <p class="text-secondary small mb-2">Détails @WorkItemTypeInfo.Label(_currentWorkItem.Type).ToLower()</p>
-                    <MetadataFormSwitch WorkItem="_currentWorkItem"
-                                         MetadataChanged="OnMetadataChanged" />
-                </div>
+                <p class="text-muted">Chargement…</p>
+            }
+            else if (_workItems.Count == 0)
+            {
+                <p class="text-muted">Aucun élément de travail.</p>
             }
             else
             {
-                <p class="text-secondary">Sélectionnez une note ou créez-en une nouvelle.</p>
+                <div class="list-group">
+                    @foreach (var item in _workItems)
+                    {
+                        <button type="button" class="list-group-item list-group-item-action @(item.Id == _currentWorkItem?.Id ? "active" : string.Empty)" @onclick="() => SelectAsync(item.Id)">
+                            <span class="d-block fw-semibold">@item.Title</span>
+                            <small>@item.Type · @item.Status</small>
+                        </button>
+                    }
+                </div>
             }
-        </main>
-
-        <aside class="col-12 col-lg-4 bg-body-secondary d-flex flex-column planner-sidebar">
-            <NoteListPanel WorkItems="_notes"
-                           SelectedWorkItemId="_currentWorkItem?.Id"
-                           OnWorkItemSelected="OnWorkItemSelected" />
         </aside>
+
+        <section class="col-md-8">
+            @if (_currentWorkItem is null)
+            {
+                <div class="alert alert-light border">Sélectionnez un élément ou créez-en un nouveau.</div>
+            }
+            else
+            {
+                <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label" for="work-item-title">Titre</label>
+                        <InputText id="work-item-title" class="form-control" @bind-Value="_editor.Title" />
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="work-item-type">Type</label>
+                            <InputSelect id="work-item-type" class="form-select" @bind-Value="_editor.Type">
+                                @foreach (var type in _availableTypes) { <option value="@type">@type</option> }
+                            </InputSelect>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="work-item-status">Statut</label>
+                            <InputSelect id="work-item-status" class="form-select" @bind-Value="_editor.Status">
+                                @foreach (var status in _availableStatuses) { <option value="@status">@status</option> }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="work-item-description">Description</label>
+                        @* La propriété actuelle est ITextContent.Content, pas Text. *@
+                        <InputTextArea id="work-item-description" class="form-control" rows="8" @bind-Value="_editor.Description" />
+                    </div>
+                    <button class="btn btn-danger" type="submit" disabled="@_isSaving">Enregistrer</button>
+                </EditForm>
+            }
+        </section>
     </div>
 </div>

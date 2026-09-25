@@ -1,115 +1,25 @@
 @namespace WurthPlannerWebview.Components.Shared
-@using WurthPlanner.Models
-@using WurthPlannerWebview.Utils
+@using WurthPlanner.Contracts.Planning
 
-<div class="planner-gantt">
-    <div class="planner-gantt-scroll">
-
-        @* ===== HEADER (sticky top) ===== *@
-        <div class="planner-gantt-header" style="--day-width: @(DayWidthPx)px; --lane-header-width: @(LaneHeaderWidthPx)px;">
-            @* Ligne 1 : mois *@
-            <div class="planner-gantt-header-row">
-                <div class="planner-gantt-corner"></div>
-                @foreach (var (label, dayCount) in MonthHeaders())
-                {
-                    <div class="planner-gantt-month-cell" style="width: calc(@dayCount * var(--day-width));">@label</div>
-                }
-            </div>
-            @* Ligne 2 : numéros de jour *@
-            <div class="planner-gantt-header-row">
-                <div class="planner-gantt-corner"></div>
-                @foreach (var day in AllDays())
-                {
-                    <div class="planner-gantt-day-cell @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")">
-                        @day.Day
-                    </div>
-                }
-            </div>
-            @* Ligne 3 : abréviation jour *@
-            <div class="planner-gantt-header-row">
-                <div class="planner-gantt-corner"></div>
-                @foreach (var day in AllDays())
-                {
-                    <div class="planner-gantt-day-cell planner-gantt-day-dow @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")">
-                        @day.ToString("ddd", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")).TrimEnd('.')
-                    </div>
-                }
-            </div>
-        </div>
-
-        @* ===== CORPS : swimlanes ===== *@
-        <div class="planner-gantt-body" style="--day-width: @(DayWidthPx)px; --row-height: @(RowHeightPx)px; --lane-header-width: @(LaneHeaderWidthPx)px;">
-
-            @* Colonne noms de ressources (sticky left) *@
-            <div class="planner-gantt-lane-col">
-                @foreach (var swimlane in _swimlanes)
-                {
-                    var laneHeight = swimlane.RowCount * RowHeightPx;
-                    <div class="planner-gantt-lane-header" style="height: @(laneHeight)px;">
-                        <span>@swimlane.Name</span>
-                    </div>
-                }
-            </div>
-
-            @* Zone de dessin : fond + barres *@
-            <div class="planner-gantt-canvas">
-
-                @* Fond : colonnes jour (grisé week-end/fériés) *@
-                @{ var totalBodyHeightPx = _totalRows * RowHeightPx; }
-                <div class="planner-gantt-day-cols" style="height: @(totalBodyHeightPx)px;">
-                    @foreach (var day in AllDays())
-                    {
-                        <div class="planner-gantt-day-col @(PlanningLayout.IsNonWorkingDay(day) ? "planner-gantt-day-off" : "")"></div>
-                    }
-                </div>
-
-                @* Séparateurs de swimlanes *@
-                @{ int sepTopPx = 0; }
-                @foreach (var swimlane in _swimlanes)
-                {
-                    var laneHeight = swimlane.RowCount * RowHeightPx;
-                    <div class="planner-gantt-lane-sep" style="top: @(sepTopPx)px; height: @(laneHeight)px;"></div>
-                    sepTopPx += laneHeight;
-                }
-
-                @* Barres des Assignments *@
-                @{ int laneTopPx = 0, rowCount = 0; }
-                @foreach (var swimlane in _swimlanes)
-                {
-                    var bars = swimlane.Bars;
-                    
-                    foreach (var bar in bars)
-                    {
-                        if (bar.StartDayOffset + bar.DurationDays <= 0 || bar.StartDayOffset >= TotalDays)
-                            continue;
-
-                        var clampedStart    = Math.Max(bar.StartDayOffset, 0);
-                        var clampedEnd      = Math.Min(bar.StartDayOffset + bar.DurationDays, TotalDays);
-                        var clampedDuration = clampedEnd - clampedStart;
-                        var barTopPx        = laneTopPx + bar.Row * RowHeightPx + 3;
-                        var barLeftPx       = clampedStart * DayWidthPx;
-                        var barWidthPx      = clampedDuration * DayWidthPx - 4;
-                        var rowIndex        = rowCount + bar.Row;
-
-                        <div class="planner-bar"
-                             data-workitem-id="@bar.WorkItem.Id"
-                             data-base-width="@barWidthPx"
-                             style="top: @(barTopPx)px; left: @(barLeftPx)px; width: @(barWidthPx)px;"
-                             title="@bar.WorkItem.Title"
-                             @onpointerdown="@(e => OnBarPointerDown(e, bar.WorkItem.Id, rowIndex))">
-                            <span class="planner-bar-label">@bar.WorkItem.Title</span>
-                            <div class="planner-bar-resize-handle"
-                                 @onpointerdown="@(e => OnResizePointerDown(e, bar.WorkItem.Id, rowIndex))"
-                                 @onpointerdown:stopPropagation="true"></div>
-                        </div>
-                    }
-
-                    rowCount += swimlane.RowCount;
-                    laneTopPx = rowCount * RowHeightPx;
-                }
-
-            </div>
-        </div>
-
-    </div>
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead><tr><th>Personne</th><th>Élément</th><th>Du</th><th>Au</th><th>Charge prévue</th></tr></thead>
+        <tbody>
+            @foreach (var assignment in Assignments.OrderBy(item => item.Assignment.AssigneeId).ThenBy(item => item.Assignment.StartDate))
+            {
+                <tr>
+                    <td>@(assignment.Assignment.AssigneeId ?? "Non affecté")</td>
+                    <td>@assignment.WorkItem.Title</td>
+                    <td>@assignment.Assignment.StartDate?.ToString("dd/MM/yyyy")</td>
+                    <td>@assignment.Assignment.EndDate?.ToString("dd/MM/yyyy")</td>
+                    <td>@assignment.Assignment.PlannedDays?.ToString()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
+
+@code {
+    // Une barre représente maintenant un PlannedAssignmentResult et non un WorkItem.
+    [Parameter] public IReadOnlyCollection<PlannedAssignmentResult> Assignments { get; set; } = Array.Empty<PlannedAssignmentResult>();
+}

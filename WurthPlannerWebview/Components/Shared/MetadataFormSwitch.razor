@@ -1,28 +1,12 @@
 @namespace WurthPlannerWebview.Components.Shared
 @using WurthPlanner.Models
 
-@switch (WorkItem.Type)
+@* Les métadonnées typées n'ont pas encore de contrat dans le domaine actuel. *@
+@if (WorkItem is not null)
 {
-    /*
-    case ProjectMetadata project:
-        <ProjectMetadataForm Metadata="project" MetadataChanged="MetadataChanged" />
-        break;
-    case MeetingMetadata meeting:
-        <MeetingMetadataForm Metadata="meeting" MetadataChanged="MetadataChanged" />
-        break;
-    case TaskMetadata task:
-        <TaskMetadataForm Metadata="task" MetadataChanged="MetadataChanged" />
-        break;
-    case SprintMetadata sprint:
-        <SprintMetadataForm Metadata="sprint" MetadataChanged="MetadataChanged" />
-        break;
-    case PersonalMetadata personal:
-        <PersonalMetadataForm Metadata="personal" MetadataChanged="MetadataChanged" />
-        break;
-     */
+    <p class="text-muted mb-0">Aucune métadonnée spécifique n'est configurée pour ce type d'élément.</p>
 }
 
 @code {
-    [Parameter, EditorRequired] public WorkItem WorkItem { get; set; } = null!;
-    [Parameter] public EventCallback MetadataChanged { get; set; }
+    [Parameter, EditorRequired] public IWorkItem? WorkItem { get; set; }
 }
